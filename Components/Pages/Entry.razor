@@ -1,0 +1,98 @@
+﻿<h3>Entry</h3>
+
+@page "/entry/{DateText}"
+@using JournalApp.Data.Entities
+@inject JournalApp.Services.IJournalService JournalService
+@inject NavigationManager Nav
+
+<h1 class="screen-title">Add / Edit Journal Entry</h1>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="form">
+        <label>Title:</label>
+        <input class="input" @bind="model.Title" />
+
+        <label>Journal Content</label>
+        <textarea class="textarea" @bind="model.ContentMarkdown" placeholder="Write your thoughts"></textarea>
+
+        <div class="row">
+            <label>Mood:</label>
+            <select class="select" @bind="model.Mood">
+                @foreach (var m in Enum.GetValues<Mood>())
+                {
+                    <option value="@m">@m</option>
+                }
+            </select>
+
+            <div class="spacer"></div>
+
+            <button class="btn" @onclick="Save">Save</button>
+            <button class="btn danger" @onclick="Delete">Delete</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(status))
+        {
+            <p class="status">@status</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string DateText { get; set; } = "";
+
+    private bool loading = true;
+    private string status = "";
+
+    private JournalEntry model = new() { EntryDate = DateTime.Today };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var date = DateTime.Parse(DateText).Date;
+
+        var existing = await JournalService.GetByDateAsync(date);
+        if (existing is not null)
+        {
+            model = new JournalEntry
+            {
+                EntryDate = existing.EntryDate,
+                Title = existing.Title,
+                ContentMarkdown = existing.ContentMarkdown,
+                Mood = existing.Mood
+            };
+        }
+        else
+        {
+            model.EntryDate = date;
+        }
+
+        loading = false;
+    }
+
+    private async Task Save()
+    {
+        status = "";
+
+        if (string.IsNullOrWhiteSpace(model.Title))
+        {
+            status = "Title is required.";
+            return;
+        }
+
+        await JournalService.UpsertAsync(model);
+        status = "Saved.";
+        Nav.NavigateTo("/journal");
+    }
+
+    private async Task Delete()
+    {
+        await JournalService.DeleteByDateAsync(model.EntryDate);
+        status = "Deleted.";
+        Nav.NavigateTo("/journal");
+    }
+}
+
