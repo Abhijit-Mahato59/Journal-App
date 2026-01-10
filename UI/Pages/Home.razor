@@ -1,0 +1,36 @@
+﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using JournalApp.Data
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<div class="page-title">Phase 0 Check</div>
+<div class="muted">If you see counts below, MudBlazor + SQLite are working.</div>
+
+<MudPaper Class="pa-4 small-gap" Elevation="1">
+    <MudText Typo="Typo.subtitle1"><b>Database path</b></MudText>
+    <MudText Typo="Typo.body2">@_dbPath</MudText>
+
+    <MudDivider Class="my-3" />
+
+    <MudText Typo="Typo.body1">Moods: <b>@_moods</b></MudText>
+    <MudText Typo="Typo.body1">Tags: <b>@_tags</b></MudText>
+    <MudText Typo="Typo.body1">Categories: <b>@_categories</b></MudText>
+</MudPaper>
+
+@code {
+    private string _dbPath = "";
+    private int _moods;
+    private int _tags;
+    private int _categories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dbPath = DbPaths.GetDbPath("journal.db");
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        _moods = await db.Moods.CountAsync();
+        _tags = await db.Tags.CountAsync();
+        _categories = await db.Categories.CountAsync();
+    }
+}

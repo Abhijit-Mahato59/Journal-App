@@ -2,7 +2,7 @@
 
 namespace JournalApp.Services;
 
-public interface IJournalService
+public interface SearchService
 {
     Task<List<JournalEntry>> GetRecentAsync(int count = 20);
     Task<JournalEntry?> GetByDateAsync(DateTime date);

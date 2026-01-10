@@ -1,51 +1,48 @@
-﻿using JournalApp.Data.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using JournalApp.Models;
 
 namespace JournalApp.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
-
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
+    public DbSet<Mood> Moods => Set<Mood>();
+    public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<EntryTag> EntryTags => Set<EntryTag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // enforce "one entry per day"
+        // One entry per day rule (enforced at DB level too)
         modelBuilder.Entity<JournalEntry>()
             .HasIndex(e => e.EntryDate)
             .IsUnique();
-    }
 
-    public override int SaveChanges()
-    {
-        ApplyTimestamps();
-        return base.SaveChanges();
-    }
+        // Many-to-many via join table
+        modelBuilder.Entity<EntryTag>()
+            .HasKey(et => new { et.EntryId, et.TagId });
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        ApplyTimestamps();
-        return base.SaveChangesAsync(cancellationToken);
-    }
+        modelBuilder.Entity<EntryTag>()
+            .HasOne(et => et.Entry)
+            .WithMany(e => e.EntryTags)
+            .HasForeignKey(et => et.EntryId);
 
-    private void ApplyTimestamps()
-    {
-        var now = DateTime.Now;
+        modelBuilder.Entity<EntryTag>()
+            .HasOne(et => et.Tag)
+            .WithMany()
+            .HasForeignKey(et => et.TagId);
 
-        foreach (var e in ChangeTracker.Entries<JournalEntry>())
-        {
-            if (e.State == EntityState.Added)
-            {
-                e.Entity.CreatedAt = now;
-                e.Entity.UpdatedAt = now;
-            }
-            else if (e.State == EntityState.Modified)
-            {
-                e.Entity.UpdatedAt = now;
-            }
-        }
+        // Basic constraints
+        modelBuilder.Entity<Tag>()
+            .HasIndex(t => t.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Category>()
+            .HasIndex(c => c.Name)
+            .IsUnique();
     }
 }

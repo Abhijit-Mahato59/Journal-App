@@ -1,0 +1,17 @@
+﻿@using MudBlazor
+
+<MudThemeProvider>
+    <MudDialogProvider />
+    <MudSnackbarProvider />
+
+    <Router AppAssembly="@typeof(Main).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(JournalApp.UI.Layout.MainLayout)" />
+        </Found>
+        <NotFound>
+            <JournalApp.UI.Layout.MainLayout>
+                <MudText Typo="Typo.h6">Page not found</MudText>
+            </JournalApp.UI.Layout.MainLayout>
+        </NotFound>
+    </Router>
+</MudThemeProvider>

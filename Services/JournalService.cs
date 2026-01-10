@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JournalApp.Services;
 
-public class JournalService : IJournalService
+public class JournalService : SearchService
 {
     private readonly AppDbContext _db;
     public JournalService(AppDbContext db) => _db = db;
