@@ -1,17 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using JournalApp.Data;
+using Journal_App.Data;
+using Journal_App.Services;
 
-namespace JournalApp;
+namespace Journal_App;
 
 public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-
-        demonstrate(builder);
 
         builder
             .UseMauiApp<App>()
@@ -21,22 +20,27 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
+        // Blazor WebView
         builder.Services.AddMauiBlazorWebView();
+
+        // MudBlazor
+        builder.Services.AddMudServices();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
 
-        // MudBlazor
-        builder.Services.AddMudServices();
-
-        // SQLite (EF Core) using factory (safe for UI apps)
+        // SQLite Database
         var dbPath = DbPaths.GetDbPath("journal.db");
         builder.Services.AddDbContextFactory<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 
+        // Services
+        builder.Services.AddScoped<JournalService>();
+        builder.Services.AddScoped<AuthService>();
+        builder.Services.AddScoped<ExportService>();
+
         return builder.Build();
     }
-    private static void demonstrate(MauiAppBuilder builder) { }
 }

@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace JournalApp
+namespace Journal_App
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

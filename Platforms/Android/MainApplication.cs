@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace JournalApp
+namespace Journal_App
 {
     [Application]
     public class MainApplication : MauiApplication

@@ -1,10 +1,10 @@
-﻿namespace JournalApp.Data;
+﻿namespace Journal_App.Data;
 
 public static class DbPaths
 {
-    public static string GetDbPath(string fileName = "journal.db")
+    public static string GetDbPath(string dbName)
     {
-        // Local app data folder (works on Windows/Android etc.)
-        return Path.Combine(FileSystem.AppDataDirectory, fileName);
+        var appDataPath = FileSystem.AppDataDirectory;
+        return Path.Combine(appDataPath, dbName);
     }
 }

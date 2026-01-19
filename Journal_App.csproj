@@ -14,18 +14,19 @@
         <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
 
         <OutputType>Exe</OutputType>
-        <RootNamespace>JournalApp</RootNamespace>
+        <RootNamespace>Journal_App</RootNamespace>
         <UseMaui>true</UseMaui>
         <SingleProject>true</SingleProject>
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);CA1416</NoWarn>
 
         <!-- Display name -->
-        <ApplicationTitle>JournalApp</ApplicationTitle>
+        <ApplicationTitle>Journal_App</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.journalapp</ApplicationId>
+        <ApplicationId>com.companyname.journal_app</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -61,21 +62,34 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Markdig" Version="0.44.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.11">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
-        <PackageReference Include="MudBlazor" Version="8.15.0" />
-    </ItemGroup>
+    <!-- MAUI Core -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+    
+    <!-- Database -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    
+    <!-- UI Library -->
+    <PackageReference Include="MudBlazor" Version="8.0.0" />
+    
+    <!-- Utilities -->
+    <PackageReference Include="Markdig" Version="0.38.0" />
+    <PackageReference Include="QuestPDF" Version="2024.12.3" />
+</ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Resources\Styles\" />
+      <MauiXaml Update="Resources\Styles\Colors.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </MauiXaml>
+      <MauiXaml Update="Resources\Styles\Styles.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </MauiXaml>
     </ItemGroup>
 
 </Project>
