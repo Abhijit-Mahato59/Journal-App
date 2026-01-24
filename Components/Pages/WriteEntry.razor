@@ -1,0 +1,306 @@
+﻿@page "/write"
+@inject JournalService JournalService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Write Entry - Journal App</PageTitle>
+
+<div class="write-entry-page">
+    <h1>@(isEditing ? "Edit Today's Entry" : "Write Today's Entry")</h1>
+    <p class="date-display">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</p>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-message">@errorMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="success-message">@successMessage</div>
+    }
+
+    <div class="entry-form">
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" @bind="title" placeholder="Give your entry a title..." maxlength="200" />
+        </div>
+
+        <div class="form-group">
+            <label>Primary Mood (Required)</label>
+            <select @bind="primaryMood">
+                <option value="">-- Select Mood --</option>
+                @foreach (var mood in MoodCategories.GetAllMoods())
+                {
+                    <option value="@mood">@mood</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Secondary Moods (Optional)</label>
+            <div style="display: flex; gap: 10px;">
+                <select @bind="secondaryMood1" style="flex: 1;">
+                    <option value="">-- None --</option>
+                    @foreach (var mood in MoodCategories.GetAllMoods())
+                    {
+                        <option value="@mood">@mood</option>
+                    }
+                </select>
+                <select @bind="secondaryMood2" style="flex: 1;">
+                    <option value="">-- None --</option>
+                    @foreach (var mood in MoodCategories.GetAllMoods())
+                    {
+                        <option value="@mood">@mood</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Category (Optional)</label>
+            <input type="text" @bind="category" placeholder="e.g., Personal, Work, Travel..." />
+        </div>
+
+        <div class="form-group">
+            <label>Tags (Optional, comma-separated)</label>
+            <input type="text" @bind="tags" placeholder="e.g., work, family, health..." />
+            <div class="predefined-tags mt-1">
+                <small>Quick add:</small>
+                @foreach (var tag in PredefinedTags.Tags.Take(10))
+                {
+                    <button type="button" class="tag" @onclick="() => AddTag(tag)">@tag</button>
+                }
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Content (Markdown supported)</label>
+            <textarea @bind="content" placeholder="Write your thoughts here..." rows="15"></textarea>
+            <small>Word count: @GetWordCount()</small>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" @onclick="SaveEntry" disabled="@isSaving">
+                @(isSaving ? "Saving..." : isEditing ? "Update Entry" : "Save Entry")
+            </button>
+            
+            @if (isEditing && existingEntryId.HasValue)
+            {
+                <button class="btn btn-danger" @onclick="DeleteEntry" disabled="@isSaving">
+                    Delete Entry
+                </button>
+            }
+            
+            <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string title = string.Empty;
+    private string content = string.Empty;
+    private string primaryMood = string.Empty;
+    private string? secondaryMood1;
+    private string? secondaryMood2;
+    private string? category;
+    private string? tags;
+
+    private bool isEditing = false;
+    private int? existingEntryId;
+    private bool isSaving = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodaysEntry();
+    }
+
+    private async Task LoadTodaysEntry()
+    {
+        try
+        {
+            var entry = await JournalService.GetEntryByDateAsync(DateTime.Today);
+            if (entry != null)
+            {
+                isEditing = true;
+                existingEntryId = entry.Id;
+                title = entry.Title;
+                content = entry.Content;
+                primaryMood = entry.PrimaryMood;
+                secondaryMood1 = entry.SecondaryMood1;
+                secondaryMood2 = entry.SecondaryMood2;
+                category = entry.Category;
+                tags = entry.Tags;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading entry: {ex.Message}";
+        }
+    }
+
+    private async Task SaveEntry()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            errorMessage = "Title is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            errorMessage = "Content is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(primaryMood))
+        {
+            errorMessage = "Primary mood is required.";
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            if (isEditing && existingEntryId.HasValue)
+            {
+                var entry = new JournalEntry
+                {
+                    Id = existingEntryId.Value,
+                    Date = DateTime.Today,
+                    Title = title.Trim(),
+                    Content = content.Trim(),
+                    PrimaryMood = primaryMood,
+                    SecondaryMood1 = secondaryMood1,
+                    SecondaryMood2 = secondaryMood2,
+                    Category = category?.Trim(),
+                    Tags = tags?.Trim()
+                };
+                await JournalService.UpdateEntryAsync(entry);
+                successMessage = "Entry updated successfully!";
+            }
+            else
+            {
+                var entry = new JournalEntry
+                {
+                    Date = DateTime.Today,
+                    Title = title.Trim(),
+                    Content = content.Trim(),
+                    PrimaryMood = primaryMood,
+                    SecondaryMood1 = secondaryMood1,
+                    SecondaryMood2 = secondaryMood2,
+                    Category = category?.Trim(),
+                    Tags = tags?.Trim()
+                };
+                var created = await JournalService.CreateEntryAsync(entry);
+                successMessage = "Entry saved successfully!";
+                isEditing = true;
+                existingEntryId = created.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving entry: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteEntry()
+    {
+        if (!existingEntryId.HasValue) return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this entry?");
+        if (!confirmed) return;
+
+        try
+        {
+            await JournalService.DeleteEntryAsync(existingEntryId.Value);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting entry: {ex.Message}";
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void AddTag(string tag)
+    {
+        if (string.IsNullOrWhiteSpace(tags))
+            tags = tag;
+        else if (!tags.Contains(tag))
+            tags += $", {tag}";
+    }
+
+    private int GetWordCount()
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return 0;
+
+        return content.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+}
+
+<style>
+    .write-entry-page {
+        max-width: 800px;
+    }
+
+    h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+    }
+
+    .date-display {
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .entry-form {
+        background: #fafafa;
+        padding: 30px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .predefined-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+
+    .predefined-tags small {
+        color: #666;
+        margin-right: 5px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+    }
+</style>

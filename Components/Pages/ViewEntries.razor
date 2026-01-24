@@ -1,0 +1,202 @@
+﻿@page "/entries"
+@inject JournalService JournalService
+
+<PageTitle>View Entries - Journal App</PageTitle>
+
+<div class="entries-page">
+    <h1>Your Journal Entries</h1>
+
+    @if (isLoading)
+    {
+        <div class="loading">Loading entries...</div>
+    }
+    else if (entries == null || !entries.Any())
+    {
+        <div class="no-entries">
+            <p>No journal entries yet. Start writing to see them here!</p>
+            <a href="/write" class="btn btn-primary">Write Your First Entry</a>
+        </div>
+    }
+    else
+    {
+        <div class="entries-list">
+            @foreach (var entry in entries)
+            {
+                <div class="entry-card card">
+                    <div class="entry-header">
+                        <div>
+                            <h3>@entry.Title</h3>
+                            <p class="entry-date">@entry.Date.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        <div class="entry-moods">
+                            <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(entry.PrimaryMood).ToLower())">
+                                @entry.PrimaryMood
+                            </span>
+                            @if (!string.IsNullOrEmpty(entry.SecondaryMood1))
+                            {
+                                <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(entry.SecondaryMood1).ToLower())">
+                                    @entry.SecondaryMood1
+                                </span>
+                            }
+                            @if (!string.IsNullOrEmpty(entry.SecondaryMood2))
+                            {
+                                <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(entry.SecondaryMood2).ToLower())">
+                                    @entry.SecondaryMood2
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="entry-preview">
+                        @GetPreview(entry.Content)
+                    </div>
+
+                    <div class="entry-meta">
+                        <span>📝 @entry.WordCount words</span>
+                        @if (!string.IsNullOrEmpty(entry.Tags))
+                        {
+                            <span>🏷️ @entry.Tags</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (hasMore)
+        {
+            <div class="text-center mt-3">
+                <button class="btn btn-secondary" @onclick="LoadMore" disabled="@isLoadingMore">
+                    @(isLoadingMore ? "Loading..." : "Load More")
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<JournalEntry> entries = new();
+    private bool isLoading = true;
+    private bool isLoadingMore = false;
+    private bool hasMore = true;
+    private int currentPage = 0;
+    private const int PageSize = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntries();
+    }
+
+    private async Task LoadEntries()
+    {
+        try
+        {
+            var loadedEntries = await JournalService.GetEntriesAsync(currentPage * PageSize, PageSize);
+            entries.AddRange(loadedEntries);
+            hasMore = loadedEntries.Count == PageSize;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading entries: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        isLoadingMore = true;
+        currentPage++;
+        await LoadEntries();
+        isLoadingMore = false;
+    }
+
+    private string GetPreview(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
+        return preview;
+    }
+}
+
+<style>
+    .entries-page {
+        max-width: 900px;
+    }
+
+    h1 {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+
+    .no-entries {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fafafa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .no-entries p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .entries-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .entry-card {
+        transition: transform 0.2s;
+    }
+
+    .entry-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+        gap: 20px;
+    }
+
+    .entry-header h3 {
+        font-size: 20px;
+        margin: 0 0 5px 0;
+        color: #1a1a1a;
+    }
+
+    .entry-date {
+        color: #666;
+        font-size: 13px;
+        margin: 0;
+    }
+
+    .entry-moods {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .entry-preview {
+        color: #4a4a4a;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .entry-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 13px;
+        color: #666;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+    }
+</style>
