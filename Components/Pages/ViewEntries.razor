@@ -1,5 +1,6 @@
 ﻿@page "/entries"
 @inject JournalService JournalService
+@inject NavigationManager Navigation
 @using Markdig
 
 <PageTitle>View Entries - Journal App</PageTitle>
@@ -53,10 +54,16 @@
                     </div>
 
                     <div class="entry-meta">
-                        <span>📝 @entry.WordCount words</span>
-                        @if (!string.IsNullOrEmpty(entry.Tags))
+                        <div style="display: flex; gap: 20px;">
+                            <span>📝 @entry.WordCount words</span>
+                            @if (!string.IsNullOrEmpty(entry.Tags))
+                            {
+                                <span>🏷️ @entry.Tags</span>
+                            }
+                        </div>
+                        @if (entry.Date.Date == DateTime.Today)
                         {
-                            <span>🏷️ @entry.Tags</span>
+                            <button class="btn-edit" @onclick="() => EditEntry()">Edit</button>
                         }
                     </div>
                 </div>
@@ -121,6 +128,11 @@
         var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
         var html = Markdown.ToHtml(preview);
         return html;
+    }
+
+    private void EditEntry()
+    {
+        Navigation.NavigateTo("/write");
     }
 }
 
@@ -223,10 +235,27 @@
 
     .entry-meta {
         display: flex;
+        justify-content: space-between;
+        align-items: center;
         gap: 20px;
         font-size: 13px;
         color: #666;
         padding-top: 15px;
         border-top: 1px solid #e0e0e0;
     }
+
+    .btn-edit {
+        padding: 6px 16px;
+        background: #1a1a1a;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+        .btn-edit:hover {
+            background: #333333;
+        }
 </style>

@@ -30,6 +30,8 @@ public class JournalEntry
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool HasBeenEdited { get; set; } = false;
+    public bool HasBeenDeleted { get; set; } = false;
 
     public int WordCount => string.IsNullOrWhiteSpace(Content)
         ? 0

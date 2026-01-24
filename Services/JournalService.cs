@@ -18,13 +18,22 @@ public class JournalService
         await using var context = await _contextFactory.CreateDbContextAsync();
         var dateOnly = date.Date;
         return await context.JournalEntries
-            .FirstOrDefaultAsync(e => e.Date.Date == dateOnly);
+            .FirstOrDefaultAsync(e => e.Date.Date == dateOnly && !e.HasBeenDeleted);
+    }
+
+    public async Task<bool> HasDeletedEntryForDateAsync(DateTime date)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var dateOnly = date.Date;
+        return await context.JournalEntries
+            .AnyAsync(e => e.Date.Date == dateOnly && e.HasBeenDeleted);
     }
 
     public async Task<List<JournalEntry>> GetEntriesAsync(int skip = 0, int take = 20)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.JournalEntries
+            .Where(e => !e.HasBeenDeleted)
             .OrderByDescending(e => e.Date)
             .Skip(skip)
             .Take(take)
@@ -35,7 +44,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.JournalEntries
-            .Where(e => e.Date.Date >= startDate.Date && e.Date.Date <= endDate.Date)
+            .Where(e => e.Date.Date >= startDate.Date && e.Date.Date <= endDate.Date && !e.HasBeenDeleted)
             .OrderByDescending(e => e.Date)
             .ToListAsync();
     }
@@ -76,6 +85,10 @@ public class JournalService
 
         if (existingEntry != null)
         {
+            if (existingEntry.HasBeenDeleted)
+            {
+                throw new InvalidOperationException("An entry was already deleted for this date. You cannot create another entry on the same day.");
+            }
             throw new InvalidOperationException("An entry already exists for this date.");
         }
 
@@ -97,6 +110,12 @@ public class JournalService
             throw new InvalidOperationException("Entry not found.");
         }
 
+        // Check if entry has already been edited
+        if (existing.HasBeenEdited)
+        {
+            throw new InvalidOperationException("This entry has already been edited once and cannot be modified again.");
+        }
+
         existing.Title = entry.Title;
         existing.Content = entry.Content;
         existing.PrimaryMood = entry.PrimaryMood;
@@ -105,6 +124,7 @@ public class JournalService
         existing.Category = entry.Category;
         existing.Tags = entry.Tags;
         existing.UpdatedAt = DateTime.Now;
+        existing.HasBeenEdited = true;
 
         await context.SaveChangesAsync();
         return existing;
@@ -117,7 +137,9 @@ public class JournalService
         var entry = await context.JournalEntries.FindAsync(id);
         if (entry != null)
         {
-            context.JournalEntries.Remove(entry);
+            // Mark as deleted instead of removing from database
+            entry.HasBeenDeleted = true;
+            entry.UpdatedAt = DateTime.Now;
             await context.SaveChangesAsync();
         }
     }

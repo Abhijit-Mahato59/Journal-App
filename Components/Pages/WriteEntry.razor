@@ -19,15 +19,29 @@
         <div class="success-message">@successMessage</div>
     }
 
+    @if (hasBeenEdited)
+    {
+        <div class="warning-message">
+            ⚠️ This entry has already been edited once and cannot be modified again.
+        </div>
+    }
+
+    @if (cannotCreateToday)
+    {
+        <div class="warning-message">
+            ⚠️ You have already deleted an entry today. You cannot create another entry on the same day.
+        </div>
+    }
+
     <div class="entry-form">
         <div class="form-group">
             <label>Title</label>
-            <input type="text" @bind="title" placeholder="Give your entry a title..." maxlength="200" />
+            <input type="text" @bind="title" placeholder="Give your entry a title..." maxlength="200" disabled="@hasBeenEdited" />
         </div>
 
         <div class="form-group">
             <label>Primary Mood (Required)</label>
-            <select @bind="primaryMood">
+            <select @bind="primaryMood" disabled="@hasBeenEdited">
                 <option value="">-- Select Mood --</option>
                 @foreach (var mood in MoodCategories.GetAllMoods())
                 {
@@ -39,14 +53,14 @@
         <div class="form-group">
             <label>Secondary Moods (Optional)</label>
             <div style="display: flex; gap: 10px;">
-                <select @bind="secondaryMood1" style="flex: 1;">
+                <select @bind="secondaryMood1" style="flex: 1;" disabled="@hasBeenEdited">
                     <option value="">-- None --</option>
                     @foreach (var mood in MoodCategories.GetAllMoods())
                     {
                         <option value="@mood">@mood</option>
                     }
                 </select>
-                <select @bind="secondaryMood2" style="flex: 1;">
+                <select @bind="secondaryMood2" style="flex: 1;" disabled="@hasBeenEdited">
                     <option value="">-- None --</option>
                     @foreach (var mood in MoodCategories.GetAllMoods())
                     {
@@ -58,49 +72,52 @@
 
         <div class="form-group">
             <label>Category (Optional)</label>
-            <input type="text" @bind="category" placeholder="e.g., Personal, Work, Travel..." />
+            <input type="text" @bind="category" placeholder="e.g., Personal, Work, Travel..." disabled="@hasBeenEdited" />
         </div>
 
         <div class="form-group">
             <label>Tags (Optional, comma-separated)</label>
-            <input type="text" @bind="tags" placeholder="e.g., work, family, health..." />
+            <input type="text" @bind="tags" placeholder="e.g., work, family, health..." disabled="@hasBeenEdited" />
             <div class="predefined-tags mt-1">
                 <small>Quick add:</small>
                 @foreach (var tag in PredefinedTags.Tags.Take(10))
                 {
-                    <button type="button" class="tag" @onclick="() => AddTag(tag)">@tag</button>
+                    <button type="button" class="tag" @onclick="() => AddTag(tag)" disabled="@hasBeenEdited">@tag</button>
                 }
             </div>
         </div>
 
         <div class="form-group">
             <label>Content (Markdown supported)</label>
-            <div class="markdown-toolbar">
-                <button type="button" class="toolbar-btn" @onclick="InsertBold" title="Bold">
-                    <strong>B</strong>
-                </button>
-                <button type="button" class="toolbar-btn" @onclick="InsertItalic" title="Italic">
-                    <em>I</em>
-                </button>
-                <button type="button" class="toolbar-btn" @onclick="InsertHeading1" title="Heading">
-                    H1
-                </button>
-                <button type="button" class="toolbar-btn" @onclick="InsertHeading2" title="Heading 2">
-                    H2
-                </button>
-                <button type="button" class="toolbar-btn" @onclick="InsertList" title="Bullet List">
-                    • List
-                </button>
-                <button type="button" class="toolbar-btn" @onclick="InsertLink" title="Link">
-                    🔗 Link
-                </button>
-            </div>
-            <textarea @bind="content" placeholder="Write your thoughts here..." rows="15"></textarea>
+            @if (!hasBeenEdited)
+            {
+                <div class="markdown-toolbar">
+                    <button type="button" class="toolbar-btn" @onclick="InsertBold" title="Bold">
+                        <strong>B</strong>
+                    </button>
+                    <button type="button" class="toolbar-btn" @onclick="InsertItalic" title="Italic">
+                        <em>I</em>
+                    </button>
+                    <button type="button" class="toolbar-btn" @onclick="InsertHeading1" title="Heading">
+                        H1
+                    </button>
+                    <button type="button" class="toolbar-btn" @onclick="InsertHeading2" title="Heading 2">
+                        H2
+                    </button>
+                    <button type="button" class="toolbar-btn" @onclick="InsertList" title="Bullet List">
+                        • List
+                    </button>
+                    <button type="button" class="toolbar-btn" @onclick="InsertLink" title="Link">
+                        🔗 Link
+                    </button>
+                </div>
+            }
+            <textarea @bind="content" placeholder="Write your thoughts here..." rows="15" disabled="@hasBeenEdited"></textarea>
             <small>Word count: @GetWordCount()</small>
         </div>
 
         <div class="form-actions">
-            <button class="btn btn-primary" @onclick="SaveEntry" disabled="@isSaving">
+            <button class="btn btn-primary" @onclick="SaveEntry" disabled="@(isSaving || hasBeenEdited || cannotCreateToday)">
                 @(isSaving ? "Saving..." : isEditing ? "Update Entry" : "Save Entry")
             </button>
 
@@ -130,8 +147,15 @@
     private bool isSaving = false;
     private string? errorMessage;
     private string? successMessage;
+    private bool hasBeenEdited = false;
+    private bool cannotCreateToday = false;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadTodaysEntry();
+    }
+
+    protected override async Task OnParametersSetAsync()
     {
         await LoadTodaysEntry();
     }
@@ -140,11 +164,20 @@
     {
         try
         {
+            // Check if an entry was deleted today
+            var hasDeleted = await JournalService.HasDeletedEntryForDateAsync(DateTime.Today);
+            if (hasDeleted)
+            {
+                cannotCreateToday = true;
+                return;
+            }
+
             var entry = await JournalService.GetEntryByDateAsync(DateTime.Today);
             if (entry != null)
             {
                 isEditing = true;
                 existingEntryId = entry.Id;
+                hasBeenEdited = entry.HasBeenEdited;
                 title = entry.Title;
                 content = entry.Content;
                 primaryMood = entry.PrimaryMood;
@@ -183,6 +216,13 @@
             return;
         }
 
+        // Show confirmation dialog for editing
+        if (isEditing && existingEntryId.HasValue)
+        {
+            bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to update this entry? This action cannot be undone.");
+            if (!confirmed) return;
+        }
+
         isSaving = true;
 
         try
@@ -194,7 +234,7 @@
                     Id = existingEntryId.Value,
                     Date = DateTime.Today,
                     Title = title.Trim(),
-                    Content = content.Trim(),
+                    Content = content,
                     PrimaryMood = primaryMood,
                     SecondaryMood1 = secondaryMood1,
                     SecondaryMood2 = secondaryMood2,
@@ -202,7 +242,7 @@
                     Tags = tags?.Trim()
                 };
                 await JournalService.UpdateEntryAsync(entry);
-                successMessage = "Entry updated successfully!";
+                Navigation.NavigateTo("/");
             }
             else
             {
@@ -210,7 +250,7 @@
                 {
                     Date = DateTime.Today,
                     Title = title.Trim(),
-                    Content = content.Trim(),
+                    Content = content,
                     PrimaryMood = primaryMood,
                     SecondaryMood1 = secondaryMood1,
                     SecondaryMood2 = secondaryMood2,
@@ -218,9 +258,7 @@
                     Tags = tags?.Trim()
                 };
                 var created = await JournalService.CreateEntryAsync(entry);
-                successMessage = "Entry saved successfully!";
-                isEditing = true;
-                existingEntryId = created.Id;
+                Navigation.NavigateTo("/");
             }
         }
         catch (Exception ex)
@@ -316,6 +354,17 @@
     .date-display {
         color: #666;
         margin-bottom: 30px;
+    }
+
+    .warning-message {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        color: #856404;
+        font-weight: 500;
+        text-align: center;
     }
 
     .entry-form {
