@@ -126,7 +126,11 @@
             return string.Empty;
 
         var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
-        var html = Markdown.ToHtml(preview);
+        var pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseSoftlineBreakAsHardlineBreak()
+            .Build();
+        var html = Markdown.ToHtml(preview, pipeline);
         return html;
     }
 

@@ -1,6 +1,495 @@
 ﻿@page "/dashboard"
+@inject JournalService JournalService
 
 <PageTitle>Dashboard - Journal App</PageTitle>
 
-<h1>Analytics Dashboard</h1>
-<p>Coming soon - View your journal analytics and insights.</p>
+<div class="dashboard-page">
+    <h1>Analytics Dashboard</h1>
+    <p class="subtitle">Insights into your journaling journey</p>
+
+    @if (isLoading)
+    {
+        <div class="loading">Loading analytics...</div>
+    }
+    else
+    {
+        <!-- Overview Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-number">@totalEntries</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-number">@currentStreak</div>
+                <div class="stat-label">Current Streak</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-number">@longestStreak</div>
+                <div class="stat-label">Longest Streak</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number">@averageWordCount</div>
+                <div class="stat-label">Avg Word Count</div>
+            </div>
+        </div>
+
+        <!-- Mood Distribution -->
+        <div class="chart-section">
+            <h2>Mood Distribution</h2>
+            <div class="mood-chart">
+                @foreach (var mood in moodDistribution)
+                {
+                    var percentage = totalEntries > 0 ? (mood.Value * 100.0 / totalEntries) : 0;
+                    <div class="mood-row">
+                        <div class="mood-label">
+                            <span class="mood-badge mood-@(mood.Key.ToLower())">@mood.Key</span>
+                        </div>
+                        <div class="mood-bar-container">
+                            <div class="mood-bar mood-@(mood.Key.ToLower())" style="width: @percentage%"></div>
+                        </div>
+                        <div class="mood-count">@mood.Value (@percentage.ToString("F1")%)</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Most Frequent Mood -->
+        <div class="insight-card">
+            <h3>Most Frequent Mood</h3>
+            @if (!string.IsNullOrEmpty(mostFrequentMood))
+            {
+                <p class="insight-value">
+                    <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(mostFrequentMood).ToLower())">
+                        @mostFrequentMood
+                    </span>
+                </p>
+            }
+            else
+            {
+                <p class="insight-empty">No mood data available yet</p>
+            }
+        </div>
+
+        <!-- Top Tags -->
+        <div class="chart-section">
+            <h2>Most Used Tags</h2>
+            @if (topTags.Any())
+            {
+                <div class="tags-cloud">
+                    @foreach (var tag in topTags.Take(15))
+                    {
+                        var fontSize = 12 + (tag.Value * 8.0 / topTags.First().Value);
+                        <span class="tag-cloud-item" style="font-size: @(fontSize)px">
+                            @tag.Key (@tag.Value)
+                        </span>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="insight-empty">No tags used yet</p>
+            }
+        </div>
+
+        <!-- Writing Activity -->
+        <div class="chart-section">
+            <h2>Writing Activity (Last 30 Days)</h2>
+            <div class="activity-calendar">
+                @for (int i = 29; i >= 0; i--)
+                {
+                    var date = DateTime.Today.AddDays(-i);
+                    var hasEntry = entriesLast30Days.Any(e => e.Date.Date == date.Date);
+                    <div class="activity-day @(hasEntry ? "active" : "")" title="@date.ToString("MMM dd")">
+                        <div class="day-label">@date.Day</div>
+                    </div>
+                }
+            </div>
+            <div class="activity-legend">
+                <span class="legend-item"><span class="legend-box active"></span> Entry written</span>
+                <span class="legend-item"><span class="legend-box"></span> No entry</span>
+            </div>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="stats-summary">
+            <div class="summary-item">
+                <span class="summary-label">Entries this month:</span>
+                <span class="summary-value">@entriesThisMonth</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Entries this year:</span>
+                <span class="summary-value">@entriesThisYear</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Missed days:</span>
+                <span class="summary-value">@missedDays</span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private int totalEntries = 0;
+    private int currentStreak = 0;
+    private int longestStreak = 0;
+    private int missedDays = 0;
+    private int averageWordCount = 0;
+    private int entriesThisMonth = 0;
+    private int entriesThisYear = 0;
+    private string? mostFrequentMood;
+    private Dictionary<string, int> moodDistribution = new();
+    private Dictionary<string, int> topTags = new();
+    private List<JournalEntry> entriesLast30Days = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+
+        try
+        {
+            // Get total entries
+            totalEntries = await JournalService.GetTotalEntriesAsync();
+
+            // Get streak info
+            var streakInfo = await JournalService.GetStreakInfoAsync();
+            currentStreak = streakInfo.currentStreak;
+            longestStreak = streakInfo.longestStreak;
+            missedDays = streakInfo.missedDays;
+
+            // Get mood distribution
+            moodDistribution = await JournalService.GetMoodDistributionAsync();
+
+            // Get most frequent mood
+            mostFrequentMood = await JournalService.GetMostFrequentMoodAsync();
+
+            // Get top tags
+            topTags = await JournalService.GetTagFrequencyAsync();
+
+            // Get average word count
+            var avgWordCount = await JournalService.GetAverageWordCountAsync();
+            averageWordCount = (int)avgWordCount;
+
+            // Get entries for last 30 days
+            var thirtyDaysAgo = DateTime.Today.AddDays(-30);
+            entriesLast30Days = await JournalService.GetEntriesByDateRangeAsync(thirtyDaysAgo, DateTime.Today);
+
+            // Get entries this month
+            var firstDayOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var entriesMonth = await JournalService.GetEntriesByDateRangeAsync(firstDayOfMonth, DateTime.Today);
+            entriesThisMonth = entriesMonth.Count;
+
+            // Get entries this year
+            var firstDayOfYear = new DateTime(DateTime.Today.Year, 1, 1);
+            var entriesYear = await JournalService.GetEntriesByDateRangeAsync(firstDayOfYear, DateTime.Today);
+            entriesThisYear = entriesYear.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+
+<style>
+    .dashboard-page {
+        max-width: 1200px;
+    }
+
+    h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 40px;
+    }
+
+    h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        color: #1a1a1a;
+    }
+
+    h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #1a1a1a;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+    .stat-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+
+    .stat-number {
+        font-size: 36px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Chart Section */
+    .chart-section {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    /* Mood Chart */
+    .mood-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .mood-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 120px;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .mood-label {
+        text-align: right;
+    }
+
+    .mood-bar-container {
+        background: #f0f0f0;
+        height: 30px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .mood-bar {
+        height: 100%;
+        transition: width 0.5s ease;
+    }
+
+        .mood-bar.mood-positive {
+            background: linear-gradient(90deg, #66bb6a, #81c784);
+        }
+
+        .mood-bar.mood-neutral {
+            background: linear-gradient(90deg, #ffa726, #ffb74d);
+        }
+
+        .mood-bar.mood-negative {
+            background: linear-gradient(90deg, #ef5350, #e57373);
+        }
+
+    .mood-count {
+        text-align: left;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    /* Insight Card */
+    .insight-card {
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .insight-value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 10px 0 0 0;
+    }
+
+    .insight-empty {
+        color: #999;
+        font-style: italic;
+        margin: 10px 0 0 0;
+    }
+
+    /* Tags Cloud */
+    .tags-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .tag-cloud-item {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        color: #1a1a1a;
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s;
+    }
+
+        .tag-cloud-item:hover {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+    /* Activity Calendar */
+    .activity-calendar {
+        display: grid;
+        grid-template-columns: repeat(30, 1fr);
+        gap: 5px;
+        margin-bottom: 15px;
+    }
+
+    .activity-day {
+        aspect-ratio: 1;
+        background: #f0f0f0;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .activity-day:hover {
+            transform: scale(1.1);
+        }
+
+        .activity-day.active {
+            background: #66bb6a;
+            border-color: #4caf50;
+        }
+
+            .activity-day.active .day-label {
+                color: #ffffff;
+                font-weight: 600;
+            }
+
+    .day-label {
+        font-size: 10px;
+        color: #666;
+    }
+
+    .activity-legend {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #666;
+    }
+
+    .legend-box {
+        width: 16px;
+        height: 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 3px;
+        background: #f0f0f0;
+    }
+
+        .legend-box.active {
+            background: #66bb6a;
+            border-color: #4caf50;
+        }
+
+    /* Stats Summary */
+    .stats-summary {
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 25px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+    }
+
+    .summary-label {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .summary-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .mood-row {
+            grid-template-columns: 80px 1fr 80px;
+            gap: 10px;
+        }
+
+        .activity-calendar {
+            grid-template-columns: repeat(15, 1fr);
+        }
+    }
+</style>

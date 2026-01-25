@@ -30,10 +30,24 @@
             </div>
         </div>
 
-        @if (todaysEntry != null)
+        @if (todaysEntry != null && todaysEntry.HasBeenEdited)
+        {
+            <div class="todays-entry-notice edited">
+                <p>✅ You've already written and edited today's entry: <strong>@todaysEntry.Title</strong></p>
+                <p class="comeback-message">Come back tomorrow to write more</p>
+            </div>
+        }
+        else if (todaysEntry != null)
         {
             <div class="todays-entry-notice">
                 <p>✅ You've already written today's entry: <strong>@todaysEntry.Title</strong></p>
+            </div>
+        }
+        else if (hasDeletedToday)
+        {
+            <div class="todays-entry-notice deleted">
+                <p>🗑️ You've already written and deleted today's entry.</p>
+                <p class="comeback-message">Come back tomorrow to write more</p>
             </div>
         }
         else if (currentStreak > 0)
@@ -44,10 +58,19 @@
         }
     }
 
-    <div class="actions mt-3">
-        <a href="/write" class="btn btn-primary">@(todaysEntry != null ? "Edit Today's Entry" : "Write Today's Entry")</a>
-        <a href="/entries" class="btn btn-secondary">View All Entries</a>
-    </div>
+    @if (!hasDeletedToday && (todaysEntry == null || !todaysEntry.HasBeenEdited))
+    {
+        <div class="actions mt-3">
+            <a href="/write" class="btn btn-primary">@(todaysEntry != null ? "Edit Today's Entry" : "Write Today's Entry")</a>
+            <a href="/entries" class="btn btn-secondary">View All Entries</a>
+        </div>
+    }
+    else
+    {
+        <div class="actions mt-3">
+            <a href="/entries" class="btn btn-secondary">View All Entries</a>
+        </div>
+    }
 </div>
 
 @code {
@@ -55,6 +78,7 @@
     private int currentStreak = 0;
     private int longestStreak = 0;
     private JournalEntry? todaysEntry;
+    private bool hasDeletedToday = false;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -71,6 +95,7 @@
             currentStreak = streakInfo.currentStreak;
             longestStreak = streakInfo.longestStreak;
             todaysEntry = await JournalService.GetEntryByDateAsync(DateTime.Today);
+            hasDeletedToday = await JournalService.HasDeletedEntryForDateAsync(DateTime.Today);
         }
         catch (Exception ex)
         {
@@ -146,8 +171,32 @@
 
         .todays-entry-notice p {
             color: #155724;
-            margin-bottom: 15px;
+            margin: 0;
         }
+
+        .todays-entry-notice.edited {
+            background: #cce5ff;
+            border: 1px solid #b8daff;
+        }
+
+            .todays-entry-notice.edited p {
+                color: #004085;
+            }
+
+        .todays-entry-notice.deleted {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+            .todays-entry-notice.deleted p {
+                color: #721c24;
+            }
+
+    .comeback-message {
+        font-size: 14px;
+        margin-top: 10px !important;
+        font-style: italic;
+    }
 
     .streak-notice {
         background: #fff3cd;

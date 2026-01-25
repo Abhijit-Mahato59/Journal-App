@@ -50,14 +50,20 @@
                 <p class="entry-date">@selectedEntry.Date.ToString("MMMM dd, yyyy")</p>
 
                 <div class="entry-moods">
-                    <span class="mood-badge">@selectedEntry.PrimaryMood</span>
+                    <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(selectedEntry.PrimaryMood).ToLower())">
+                        @selectedEntry.PrimaryMood
+                    </span>
                     @if (!string.IsNullOrEmpty(selectedEntry.SecondaryMood1))
                     {
-                        <span class="mood-badge">@selectedEntry.SecondaryMood1</span>
+                        <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(selectedEntry.SecondaryMood1).ToLower())">
+                            @selectedEntry.SecondaryMood1
+                        </span>
                     }
                     @if (!string.IsNullOrEmpty(selectedEntry.SecondaryMood2))
                     {
-                        <span class="mood-badge">@selectedEntry.SecondaryMood2</span>
+                        <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(selectedEntry.SecondaryMood2).ToLower())">
+                            @selectedEntry.SecondaryMood2
+                        </span>
                     }
                 </div>
 
@@ -185,7 +191,11 @@
             return string.Empty;
 
         var preview = content.Length > 150 ? content.Substring(0, 150) + "..." : content;
-        var html = Markdown.ToHtml(preview);
+        var pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseSoftlineBreakAsHardlineBreak()
+            .Build();
+        var html = Markdown.ToHtml(preview, pipeline);
         return html;
     }
 }
