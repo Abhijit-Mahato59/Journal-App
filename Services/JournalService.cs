@@ -53,7 +53,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.JournalEntries
-            .Where(e => e.Title.Contains(searchTerm) || e.Content.Contains(searchTerm))
+            .Where(e => !e.HasBeenDeleted && (e.Title.Contains(searchTerm) || e.Content.Contains(searchTerm)))
             .OrderByDescending(e => e.Date)
             .ToListAsync();
     }
@@ -62,7 +62,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.JournalEntries
-            .Where(e => e.PrimaryMood == mood || e.SecondaryMood1 == mood || e.SecondaryMood2 == mood)
+            .Where(e => !e.HasBeenDeleted && (e.PrimaryMood == mood || e.SecondaryMood1 == mood || e.SecondaryMood2 == mood))
             .OrderByDescending(e => e.Date)
             .ToListAsync();
     }
@@ -71,7 +71,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.JournalEntries
-            .Where(e => e.Tags != null && e.Tags.Contains(tag))
+            .Where(e => !e.HasBeenDeleted && e.Tags != null && e.Tags.Contains(tag))
             .OrderByDescending(e => e.Date)
             .ToListAsync();
     }
@@ -147,7 +147,9 @@ public class JournalService
     public async Task<int> GetTotalEntriesAsync()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        return await context.JournalEntries.CountAsync();
+        return await context.JournalEntries
+            .Where(e => !e.HasBeenDeleted)
+            .CountAsync();
     }
 
     public async Task<(int currentStreak, int longestStreak, int missedDays)> GetStreakInfoAsync()
@@ -155,6 +157,7 @@ public class JournalService
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var allEntries = await context.JournalEntries
+            .Where(e => !e.HasBeenDeleted)
             .OrderByDescending(e => e.Date)
             .Select(e => e.Date.Date)
             .ToListAsync();
@@ -210,7 +213,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var query = context.JournalEntries.AsQueryable();
+        var query = context.JournalEntries.Where(e => !e.HasBeenDeleted);
 
         if (startDate.HasValue)
             query = query.Where(e => e.Date.Date >= startDate.Value.Date);
@@ -240,7 +243,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var query = context.JournalEntries.AsQueryable();
+        var query = context.JournalEntries.Where(e => !e.HasBeenDeleted);
 
         if (startDate.HasValue)
             query = query.Where(e => e.Date.Date >= startDate.Value.Date);
@@ -259,7 +262,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var query = context.JournalEntries.AsQueryable();
+        var query = context.JournalEntries.Where(e => !e.HasBeenDeleted);
 
         if (startDate.HasValue)
             query = query.Where(e => e.Date.Date >= startDate.Value.Date);
@@ -293,7 +296,7 @@ public class JournalService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var query = context.JournalEntries.AsQueryable();
+        var query = context.JournalEntries.Where(e => !e.HasBeenDeleted);
 
         if (startDate.HasValue)
             query = query.Where(e => e.Date.Date >= startDate.Value.Date);
