@@ -142,12 +142,23 @@ public class JournalService
 
         int currentStreak = 0;
         var today = DateTime.Today;
-        var checkDate = today;
+        var yesterday = today.AddDays(-1);
 
+        // Start checking from today if there's an entry today, otherwise start from yesterday
+        var checkDate = allEntries.Contains(today) ? today : yesterday;
+
+        // Count consecutive days backwards
         while (allEntries.Contains(checkDate))
         {
             currentStreak++;
             checkDate = checkDate.AddDays(-1);
+        }
+
+        // If we started from yesterday and there's no entry today,
+        // the streak is only valid if yesterday had an entry
+        if (!allEntries.Contains(today) && !allEntries.Contains(yesterday))
+        {
+            currentStreak = 0;
         }
 
         int longestStreak = 0;

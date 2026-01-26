@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject JournalService JournalService
 
 <PageTitle>Home - Journal App</PageTitle>
 
@@ -6,28 +7,82 @@
     <h1>Welcome to Your Journal</h1>
     <p class="subtitle">Track your thoughts, moods, and memories</p>
 
-    <div class="quick-stats">
-        <div class="stat-card">
-            <div class="stat-number">0</div>
-            <div class="stat-label">Total Entries</div>
+    @if (isLoading)
+    {
+        <div class="loading">Loading stats...</div>
+    }
+    else
+    {
+        <div class="quick-stats">
+            <div class="stat-card">
+                <div class="stat-number">@totalEntries</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number">@currentStreak</div>
+                <div class="stat-label">Current Streak</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number">@longestStreak</div>
+                <div class="stat-label">Longest Streak</div>
+            </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-number">0</div>
-            <div class="stat-label">Current Streak</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-number">0</div>
-            <div class="stat-label">Longest Streak</div>
-        </div>
-    </div>
+        @if (todaysEntry != null)
+        {
+            <div class="todays-entry-notice">
+                <p>✅ You've already written today's entry: <strong>@todaysEntry.Title</strong></p>
+                <a href="/write" class="btn btn-secondary">Edit Today's Entry</a>
+            </div>
+        }
+        else if (currentStreak > 0)
+        {
+            <div class="streak-notice">
+                <p>🔥 Keep your streak going! Write today's entry.</p>
+            </div>
+        }
+    }
 
     <div class="actions mt-3">
-        <a href="/write" class="btn btn-primary">Write Today's Entry</a>
+        <a href="/write" class="btn btn-primary">@(todaysEntry != null ? "Edit Today's Entry" : "Write Today's Entry")</a>
         <a href="/entries" class="btn btn-secondary">View All Entries</a>
     </div>
 </div>
+
+@code {
+    private int totalEntries = 0;
+    private int currentStreak = 0;
+    private int longestStreak = 0;
+    private JournalEntry? todaysEntry;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            totalEntries = await JournalService.GetTotalEntriesAsync();
+            var streakInfo = await JournalService.GetStreakInfoAsync();
+            currentStreak = streakInfo.currentStreak;
+            longestStreak = streakInfo.longestStreak;
+            todaysEntry = await JournalService.GetEntryByDateAsync(DateTime.Today);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stats: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
 
 <style>
     .home-page {
@@ -80,4 +135,32 @@
         gap: 15px;
         flex-wrap: wrap;
     }
+
+    .todays-entry-notice {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+        .todays-entry-notice p {
+            color: #155724;
+            margin-bottom: 15px;
+        }
+
+    .streak-notice {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+        .streak-notice p {
+            color: #856404;
+            margin: 0;
+        }
 </style>

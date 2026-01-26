@@ -1,5 +1,6 @@
 ﻿@page "/entries"
 @inject JournalService JournalService
+@using Markdig
 
 <PageTitle>View Entries - Journal App</PageTitle>
 
@@ -48,7 +49,7 @@
                     </div>
 
                     <div class="entry-preview">
-                        @GetPreview(entry.Content)
+                        @((MarkupString)GetHtmlPreview(entry.Content))
                     </div>
 
                     <div class="entry-meta">
@@ -112,13 +113,14 @@
         isLoadingMore = false;
     }
 
-    private string GetPreview(string content)
+    private string GetHtmlPreview(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return string.Empty;
 
         var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
-        return preview;
+        var html = Markdown.ToHtml(preview);
+        return html;
     }
 }
 
@@ -140,10 +142,10 @@
         border: 1px solid #e0e0e0;
     }
 
-    .no-entries p {
-        color: #666;
-        margin-bottom: 20px;
-    }
+        .no-entries p {
+            color: #666;
+            margin-bottom: 20px;
+        }
 
     .entries-list {
         display: flex;
@@ -155,9 +157,9 @@
         transition: transform 0.2s;
     }
 
-    .entry-card:hover {
-        transform: translateY(-2px);
-    }
+        .entry-card:hover {
+            transform: translateY(-2px);
+        }
 
     .entry-header {
         display: flex;
@@ -167,11 +169,11 @@
         gap: 20px;
     }
 
-    .entry-header h3 {
-        font-size: 20px;
-        margin: 0 0 5px 0;
-        color: #1a1a1a;
-    }
+        .entry-header h3 {
+            font-size: 20px;
+            margin: 0 0 5px 0;
+            color: #1a1a1a;
+        }
 
     .entry-date {
         color: #666;
@@ -190,6 +192,34 @@
         line-height: 1.6;
         margin-bottom: 15px;
     }
+
+        .entry-preview p {
+            margin: 0 0 10px 0;
+        }
+
+        .entry-preview strong {
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .entry-preview em {
+            font-style: italic;
+        }
+
+        .entry-preview h1, .entry-preview h2, .entry-preview h3 {
+            margin: 0 0 8px 0;
+            color: #1a1a1a;
+        }
+
+        .entry-preview ul, .entry-preview ol {
+            margin: 0 0 10px 20px;
+            padding: 0;
+        }
+
+        .entry-preview a {
+            color: #1a1a1a;
+            text-decoration: underline;
+        }
 
     .entry-meta {
         display: flex;

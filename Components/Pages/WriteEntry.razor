@@ -75,6 +75,26 @@
 
         <div class="form-group">
             <label>Content (Markdown supported)</label>
+            <div class="markdown-toolbar">
+                <button type="button" class="toolbar-btn" @onclick="InsertBold" title="Bold">
+                    <strong>B</strong>
+                </button>
+                <button type="button" class="toolbar-btn" @onclick="InsertItalic" title="Italic">
+                    <em>I</em>
+                </button>
+                <button type="button" class="toolbar-btn" @onclick="InsertHeading1" title="Heading">
+                    H1
+                </button>
+                <button type="button" class="toolbar-btn" @onclick="InsertHeading2" title="Heading 2">
+                    H2
+                </button>
+                <button type="button" class="toolbar-btn" @onclick="InsertList" title="Bullet List">
+                    • List
+                </button>
+                <button type="button" class="toolbar-btn" @onclick="InsertLink" title="Link">
+                    🔗 Link
+                </button>
+            </div>
             <textarea @bind="content" placeholder="Write your thoughts here..." rows="15"></textarea>
             <small>Word count: @GetWordCount()</small>
         </div>
@@ -83,14 +103,14 @@
             <button class="btn btn-primary" @onclick="SaveEntry" disabled="@isSaving">
                 @(isSaving ? "Saving..." : isEditing ? "Update Entry" : "Save Entry")
             </button>
-            
+
             @if (isEditing && existingEntryId.HasValue)
             {
                 <button class="btn btn-danger" @onclick="DeleteEntry" disabled="@isSaving">
                     Delete Entry
                 </button>
             }
-            
+
             <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </div>
@@ -244,6 +264,36 @@
             tags += $", {tag}";
     }
 
+    private void InsertBold()
+    {
+        content += "**text**";
+    }
+
+    private void InsertItalic()
+    {
+        content += "_text_";
+    }
+
+    private void InsertHeading1()
+    {
+        content += "# Heading";
+    }
+
+    private void InsertHeading2()
+    {
+        content += "## Heading";
+    }
+
+    private void InsertList()
+    {
+        content += "- List item";
+    }
+
+    private void InsertLink()
+    {
+        content += "[text](url)";
+    }
+
     private int GetWordCount()
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -279,12 +329,12 @@
         margin-bottom: 20px;
     }
 
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #1a1a1a;
-    }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
 
     .predefined-tags {
         display: flex;
@@ -293,14 +343,43 @@
         align-items: center;
     }
 
-    .predefined-tags small {
-        color: #666;
-        margin-right: 5px;
-    }
+        .predefined-tags small {
+            color: #666;
+            margin-right: 5px;
+        }
 
     .form-actions {
         display: flex;
         gap: 10px;
         margin-top: 30px;
     }
+
+    .markdown-toolbar {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 8px;
+        padding: 8px;
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+    }
+
+    .toolbar-btn {
+        padding: 6px 12px;
+        border: 1px solid #d0d0d0;
+        background-color: #fafafa;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+        .toolbar-btn:hover {
+            background-color: #e8e8e8;
+            border-color: #1a1a1a;
+        }
+
+        .toolbar-btn:active {
+            background-color: #d8d8d8;
+        }
 </style>
