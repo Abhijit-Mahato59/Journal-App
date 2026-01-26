@@ -1,0 +1,157 @@
+﻿@page "/login"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login - Journal App</PageTitle>
+
+<div class="login-page">
+    <div class="login-container">
+        <h1>Journal App</h1>
+        <p class="subtitle">Enter your password to continue</p>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="error-message">@errorMessage</div>
+        }
+
+        <div class="login-form">
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" @bind="password" @onkeypress="HandleKeyPress" placeholder="Enter your password" autofocus />
+            </div>
+
+            <button class="btn btn-primary btn-full" @onclick="HandleLogin" disabled="@isLoggingIn">
+                @(isLoggingIn ? "Logging in..." : "Login")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string password = string.Empty;
+    private string? errorMessage;
+    private bool isLoggingIn = false;
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Please enter your password";
+            return;
+        }
+
+        isLoggingIn = true;
+
+        try
+        {
+            // Check if password is set
+            var isPasswordSet = await AuthService.IsPasswordSetAsync();
+
+            if (!isPasswordSet)
+            {
+                // No password set, redirect to home
+                Navigation.NavigateTo("/", true);
+                return;
+            }
+
+            // Verify password
+            var isValid = await AuthService.VerifyPasswordAsync(password);
+
+            if (isValid)
+            {
+                // Set login session
+                await AuthService.SetAuthenticatedAsync(true);
+                await AuthService.UpdateLastLoginAsync();
+                Navigation.NavigateTo("/", true);
+            }
+            else
+            {
+                errorMessage = "Incorrect password. Please try again.";
+                password = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error during login: {ex.Message}";
+        }
+        finally
+        {
+            isLoggingIn = false;
+        }
+    }
+}
+
+<style>
+    .login-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: var(--bg-primary);
+        padding: 20px;
+    }
+
+    .login-container {
+        max-width: 400px;
+        width: 100%;
+        padding: 40px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        text-align: center;
+        color: var(--text-primary);
+    }
+
+    .subtitle {
+        text-align: center;
+        color: var(--text-tertiary);
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+
+    .login-form {
+        margin-top: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+    .btn-full {
+        width: 100%;
+    }
+
+    .error-message {
+        color: #dc3545;
+        padding: 10px;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 14px;
+    }
+</style>

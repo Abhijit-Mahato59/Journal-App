@@ -1,0 +1,76 @@
+﻿@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+@if (isAuthorized)
+{
+    @ChildContent
+}
+else if (isLoading)
+{
+    <div class="auth-loading">
+        <p>Loading...</p>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool isAuthorized = false;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            // Check if password is set
+            var isPasswordSet = await AuthService.IsPasswordSetAsync();
+
+            if (!isPasswordSet)
+            {
+                // No password set, allow access
+                isAuthorized = true;
+                isLoading = false;
+                StateHasChanged();
+                return;
+            }
+
+            // Check if authenticated
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+
+            if (!isAuthenticated)
+            {
+                // Not authenticated, redirect to login
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+            // Authenticated
+            isAuthorized = true;
+            isLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking authentication: {ex.Message}");
+            isAuthorized = true; // Fail open in case of error
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+
+<style>
+    .auth-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: var(--text-tertiary);
+    }
+</style>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using Journal_App.Data;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,10 +9,12 @@ namespace Journal_App.Services;
 public class AuthService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IJSRuntime _jsRuntime;
 
-    public AuthService(IDbContextFactory<AppDbContext> contextFactory)
+    public AuthService(IDbContextFactory<AppDbContext> contextFactory, IJSRuntime jsRuntime)
     {
         _contextFactory = contextFactory;
+        _jsRuntime = jsRuntime;
     }
 
     public async Task<bool> IsPasswordSetAsync()
@@ -56,6 +59,21 @@ public class AuthService
         return true;
     }
 
+    public async Task RemovePasswordAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var settings = await context.AppSettings.FindAsync(1);
+
+        if (settings != null)
+        {
+            settings.PasswordHash = null;
+            await context.SaveChangesAsync();
+        }
+
+        // Also clear the session
+        await LogoutAsync();
+    }
+
     private string HashPassword(string password)
     {
         using var sha256 = SHA256.Create();
@@ -92,6 +110,50 @@ public class AuthService
         {
             settings.IsDarkMode = isDark;
             await context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<bool> IsAuthenticatedAsync()
+    {
+        try
+        {
+            var authenticated = await _jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "journal_authenticated");
+            return authenticated == "true";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task SetAuthenticatedAsync(bool authenticated)
+    {
+        try
+        {
+            if (authenticated)
+            {
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "journal_authenticated", "true");
+            }
+            else
+            {
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "journal_authenticated");
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+    }
+
+    public async Task LogoutAsync()
+    {
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "journal_authenticated");
+        }
+        catch
+        {
+            // Ignore errors
         }
     }
 }
