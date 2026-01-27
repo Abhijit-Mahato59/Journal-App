@@ -216,30 +216,31 @@
         align-items: center;
         margin-bottom: 20px;
         padding: 20px;
-        background: #fafafa;
+        background: var(--bg-secondary);
         border-radius: 8px;
     }
 
         .calendar-header h2 {
             font-size: 24px;
             margin: 0;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
     .btn-nav {
         padding: 10px 20px;
-        background: #ffffff;
-        border: 1px solid #d0d0d0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color-secondary);
         border-radius: 4px;
         cursor: pointer;
         font-size: 18px;
+        color: var(--text-primary);
         transition: all 0.2s;
     }
 
         .btn-nav:hover {
-            background: #1a1a1a;
-            color: #ffffff;
-            border-color: #1a1a1a;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border-color: var(--text-primary);
         }
 
     .calendar-grid {
@@ -254,16 +255,16 @@
         text-align: center;
         font-weight: 600;
         font-size: 14px;
-        color: #666;
-        background: #fafafa;
+        color: var(--text-tertiary);
+        background: var(--bg-secondary);
         border-radius: 4px;
     }
 
     .calendar-day {
         min-height: 100px;
         padding: 10px;
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
@@ -271,18 +272,18 @@
     }
 
         .calendar-day:hover {
-            border-color: #1a1a1a;
+            border-color: var(--text-primary);
             transform: translateY(-2px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow-color);
         }
 
         .calendar-day.other-month {
-            background: #fafafa;
+            background: var(--bg-secondary);
             opacity: 0.5;
         }
 
         .calendar-day.today {
-            border: 2px solid #1a1a1a;
+            border: 2px solid var(--text-primary);
             background: #fff3cd;
         }
 
@@ -292,14 +293,14 @@
         }
 
         .calendar-day.selected {
-            border: 2px solid #1a1a1a;
-            background: #e8e8e8;
+            border: 2px solid var(--text-primary);
+            background: var(--bg-tertiary);
         }
 
     .day-number {
         font-size: 14px;
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text-primary);
         margin-bottom: 5px;
     }
 
@@ -312,8 +313,8 @@
     }
 
     .entry-preview-panel {
-        background: #fafafa;
-        border: 1px solid #e0e0e0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 30px;
     }
@@ -321,11 +322,11 @@
         .entry-preview-panel h3 {
             font-size: 22px;
             margin: 0 0 10px 0;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
         .entry-preview-panel .entry-date {
-            color: #666;
+            color: var(--text-tertiary);
             font-size: 14px;
             margin-bottom: 15px;
         }
@@ -338,11 +339,11 @@
     }
 
     .entry-content {
-        color: #4a4a4a;
+        color: var(--text-secondary);
         line-height: 1.6;
         margin-bottom: 20px;
         padding: 15px;
-        background: #ffffff;
+        background: var(--card-bg);
         border-radius: 4px;
     }
 
@@ -352,7 +353,7 @@
 
         .entry-content strong {
             font-weight: 700;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
         .entry-content em {
@@ -361,7 +362,7 @@
 
         .entry-content h1, .entry-content h2, .entry-content h3 {
             margin: 0 0 8px 0;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
         .entry-content ul, .entry-content ol {
@@ -370,7 +371,7 @@
         }
 
         .entry-content a {
-            color: #1a1a1a;
+            color: var(--text-primary);
             text-decoration: underline;
         }
 

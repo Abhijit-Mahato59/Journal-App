@@ -55,10 +55,10 @@
 
                     <div class="entry-meta">
                         <div style="display: flex; gap: 20px;">
-                            <span>📝 @entry.WordCount words</span>
+                            <span>@entry.WordCount words</span>
                             @if (!string.IsNullOrEmpty(entry.Tags))
                             {
-                                <span>🏷️ @entry.Tags</span>
+                                <span>@entry.Tags</span>
                             }
                         </div>
                         @if (entry.Date.Date == DateTime.Today)
@@ -153,13 +153,13 @@
     .no-entries {
         text-align: center;
         padding: 60px 20px;
-        background: #fafafa;
+        background: var(--bg-secondary);
         border-radius: 8px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
     }
 
         .no-entries p {
-            color: #666;
+            color: var(--text-tertiary);
             margin-bottom: 20px;
         }
 
@@ -188,11 +188,11 @@
         .entry-header h3 {
             font-size: 20px;
             margin: 0 0 5px 0;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
     .entry-date {
-        color: #666;
+        color: var(--text-tertiary);
         font-size: 13px;
         margin: 0;
     }
@@ -204,7 +204,7 @@
     }
 
     .entry-preview {
-        color: #4a4a4a;
+        color: var(--text-secondary);
         line-height: 1.6;
         margin-bottom: 15px;
     }
@@ -215,7 +215,7 @@
 
         .entry-preview strong {
             font-weight: 700;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
         .entry-preview em {
@@ -224,7 +224,7 @@
 
         .entry-preview h1, .entry-preview h2, .entry-preview h3 {
             margin: 0 0 8px 0;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
 
         .entry-preview ul, .entry-preview ol {
@@ -233,7 +233,7 @@
         }
 
         .entry-preview a {
-            color: #1a1a1a;
+            color: var(--text-primary);
             text-decoration: underline;
         }
 
@@ -243,15 +243,15 @@
         align-items: center;
         gap: 20px;
         font-size: 13px;
-        color: #666;
+        color: var(--text-tertiary);
         padding-top: 15px;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid var(--border-color);
     }
 
     .btn-edit {
         padding: 6px 16px;
-        background: #1a1a1a;
-        color: #ffffff;
+        background: var(--text-primary);
+        color: var(--bg-primary);
         border: none;
         border-radius: 4px;
         cursor: pointer;
@@ -260,6 +260,6 @@
     }
 
         .btn-edit:hover {
-            background: #333333;
+            opacity: 0.8;
         }
 </style>

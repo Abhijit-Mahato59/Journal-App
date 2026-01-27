@@ -76,12 +76,12 @@ a {
 }
 
 .btn-primary {
-    background-color: #1a1a1a;
-    color: white;
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
 }
 
     .btn-primary:hover {
-        background-color: #333333;
+        opacity: 0.85;
     }
 
 .btn-secondary {

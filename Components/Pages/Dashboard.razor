@@ -16,13 +16,11 @@
         <!-- Overview Stats -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">🔥</div>
                 <div class="stat-number">@currentStreak</div>
                 <div class="stat-label">Current Streak</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon">📝</div>
                 <div class="stat-number">@totalEntriesFiltered</div>
                 <div class="stat-label">Total Entries</div>
                 <div class="stat-filter">
@@ -36,13 +34,11 @@
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon">🏆</div>
                 <div class="stat-number">@longestStreak</div>
                 <div class="stat-label">Longest Streak</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon">❌</div>
                 <div class="stat-number">@missedDaysFiltered</div>
                 <div class="stat-label">Missed Days</div>
                 <div class="stat-filter">
@@ -94,7 +90,7 @@
 
                                 var path = $"M 100 100 L {startX:F2} {startY:F2} A 80 80 0 {largeArc} 1 {endX:F2} {endY:F2} Z";
 
-                                <path d="@path" fill="@colors[mood.Key]" stroke="#ffffff" stroke-width="2" />
+                                <path d="@path" fill="@colors[mood.Key]" stroke="var(--card-bg)" stroke-width="2" />
 
                                 startAngle = endAngle;
                             }
@@ -277,7 +273,7 @@
                         @for (int i = 0; i <= 5; i++)
                         {
                             var y = 40 + (i * 200.0 / 5);
-                            <line x1="60" y1="@y" x2="760" y2="@y" stroke="#e0e0e0" stroke-width="1" />
+                            <line x1="60" y1="@y" x2="760" y2="@y" stroke="var(--border-color)" stroke-width="1" />
                         }
 
                         @{
@@ -297,14 +293,14 @@
                         }
 
                         <!-- Line path -->
-                        <path d="@pathData.ToString()" fill="none" stroke="#1a1a1a" stroke-width="2" />
+                        <path d="@pathData.ToString()" fill="none" stroke="var(--text-primary)" stroke-width="2" />
 
                         <!-- Data points -->
                         @for (int i = 0; i < dataPoints; i++)
                         {
                             var x = 60 + (i * stepX);
                             var y = 240 - (wordCountData.ElementAt(i).Value * 200.0 / maxWordCount);
-                            <circle cx="@x" cy="@y" r="4" fill="#1a1a1a" />
+                            <circle cx="@x" cy="@y" r="4" fill="var(--text-primary)" />
                         }
 
                         <!-- Y-axis labels -->
@@ -313,7 +309,7 @@
                             var yPos = 40 + (i * 200.0 / 5);
                             var value = (int)(maxWordCount * (5 - i) / 5);
                             <g>
-                                <text x="50" y="@(yPos + 5)" style="text-anchor: end; font-size: 12px; fill: #666;">@value</text>
+                                <text x="50" y="@(yPos + 5)" style="text-anchor: end; font-size: 12px; fill: var(--text-tertiary);">@value</text>
                             </g>
                         }
 
@@ -323,7 +319,7 @@
                             var xPos = 60 + (i * stepX);
                             var label = wordCountData.ElementAt(i).Key;
                             <g>
-                                <text x="@xPos" y="260" style="text-anchor: middle; font-size: 10px; fill: #666;">@label</text>
+                                <text x="@xPos" y="260" style="text-anchor: middle; font-size: 10px; fill: var(--text-tertiary);">@label</text>
                             </g>
                         }
                     </svg>
@@ -646,14 +642,14 @@
 
     .subtitle {
         font-size: 16px;
-        color: #666;
+        color: var(--text-tertiary);
         margin-bottom: 40px;
     }
 
     h2 {
         font-size: 20px;
         margin-bottom: 20px;
-        color: #1a1a1a;
+        color: var(--text-primary);
     }
 
     /* Stats Grid */
@@ -665,8 +661,8 @@
     }
 
     .stat-card {
-        background: #fafafa;
-        border: 1px solid #e0e0e0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 30px;
         text-align: center;
@@ -676,24 +672,19 @@
 
         .stat-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow-color);
         }
-
-    .stat-icon {
-        font-size: 32px;
-        margin-bottom: 10px;
-    }
 
     .stat-number {
         font-size: 36px;
         font-weight: 700;
-        color: #1a1a1a;
+        color: var(--text-primary);
         margin-bottom: 8px;
     }
 
     .stat-label {
         font-size: 13px;
-        color: #666;
+        color: var(--text-tertiary);
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 10px;
@@ -705,17 +696,18 @@
 
         .stat-filter select {
             padding: 5px 10px;
-            border: 1px solid #d0d0d0;
+            border: 1px solid var(--border-color-secondary);
             border-radius: 4px;
-            background: #ffffff;
+            background: var(--card-bg);
+            color: var(--text-primary);
             font-size: 12px;
             cursor: pointer;
         }
 
     /* Chart Section */
     .chart-section {
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 30px;
         margin-bottom: 30px;
@@ -734,9 +726,10 @@
 
     .filter-dropdown {
         padding: 8px 15px;
-        border: 1px solid #d0d0d0;
+        border: 1px solid var(--border-color-secondary);
         border-radius: 4px;
-        background: #fafafa;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
         font-size: 14px;
         cursor: pointer;
     }
@@ -788,7 +781,7 @@
 
     .legend-label {
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text-primary);
     }
 
     /* Top Moods List */
@@ -803,14 +796,14 @@
         justify-content: space-between;
         align-items: center;
         padding: 15px 20px;
-        background: #fafafa;
+        background: var(--bg-secondary);
         border-radius: 8px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
     }
 
     .mood-count {
         font-weight: 600;
-        color: #666;
+        color: var(--text-tertiary);
     }
 
     /* Recent Moods List */
@@ -825,13 +818,13 @@
         align-items: center;
         gap: 15px;
         padding: 12px 15px;
-        background: #fafafa;
+        background: var(--bg-secondary);
         border-radius: 6px;
     }
 
     .mood-date {
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text-primary);
         min-width: 60px;
     }
 
@@ -857,12 +850,12 @@
 
     .bar-label {
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text-primary);
         text-align: right;
     }
 
     .bar-container {
-        background: #f0f0f0;
+        background: var(--bg-tertiary);
         height: 30px;
         border-radius: 4px;
         overflow: hidden;
@@ -870,7 +863,7 @@
 
     .bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #1a1a1a, #4a4a4a);
+        background: linear-gradient(90deg, #5c6bc0, #7e57c2);
         transition: width 0.5s ease;
     }
 
@@ -881,7 +874,7 @@
     .bar-value {
         text-align: left;
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text-primary);
     }
 
     /* Line Chart */
@@ -905,8 +898,8 @@
 
     .activity-day {
         aspect-ratio: 1;
-        background: #f0f0f0;
-        border: 1px solid #e0e0e0;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         display: flex;
         align-items: center;
@@ -931,7 +924,7 @@
 
     .day-label {
         font-size: 10px;
-        color: #666;
+        color: var(--text-tertiary);
     }
 
     .activity-legend {
@@ -939,15 +932,15 @@
         gap: 20px;
         justify-content: center;
         padding-top: 15px;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid var(--border-color);
     }
 
     .legend-box {
         width: 16px;
         height: 16px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
         border-radius: 3px;
-        background: #f0f0f0;
+        background: var(--bg-tertiary);
     }
 
         .legend-box.active {

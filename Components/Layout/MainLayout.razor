@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 @if (currentPath == "login")
 {
@@ -28,10 +29,41 @@ else
 
 @code {
     private string currentPath = string.Empty;
+
     protected override void OnInitialized()
     {
         UpdateCurrentPath();
         Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ApplyStoredTheme();
+        }
+    }
+
+    private async Task ApplyStoredTheme()
+    {
+        try
+        {
+            var theme = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "journal_theme");
+
+            if (theme == "dark")
+            {
+                await JSRuntime.InvokeVoidAsync("eval", "document.documentElement.setAttribute('data-theme', 'dark')");
+            }
+            else if (theme == "auto")
+            {
+                await JSRuntime.InvokeVoidAsync("eval",
+                    "if(window.matchMedia('(prefers-color-scheme:dark)').matches){document.documentElement.setAttribute('data-theme','dark')}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error applying theme: {ex.Message}");
+        }
     }
 
     private void UpdateCurrentPath()
