@@ -50,7 +50,7 @@
                     <p>Log out of your journal to lock it</p>
                 </div>
                 <div class="setting-action">
-                    <button class="btn btn-secondary" @onclick="HandleLogout">Logout</button>
+                    <button class="btn btn-secondary" @onclick="ShowLogoutConfirm">Logout</button>
                 </div>
             </div>
         }
@@ -144,6 +144,20 @@
             </div>
         </div>
     }
+
+    @if (showLogoutConfirm)
+    {
+        <div class="modal-overlay" @onclick="CloseLogoutConfirm">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <h2>Logout</h2>
+                <p>Are you sure you want to log out? You will need to enter your password to access your journal again.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" @onclick="HandleLogout">Logout</button>
+                    <button class="btn btn-secondary" @onclick="CloseLogoutConfirm">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -155,6 +169,7 @@
     private bool isPasswordSet = false;
     private bool showPasswordDialog = false;
     private bool showRemovePasswordDialog = false;
+    private bool showLogoutConfirm = false;
     private string passwordDialogMode = "set"; // "set" or "change"
     private string passwordDialogTitle = "";
     private string currentPassword = string.Empty;
@@ -317,8 +332,19 @@
         }
     }
 
+    private void ShowLogoutConfirm()
+    {
+        showLogoutConfirm = true;
+    }
+
+    private void CloseLogoutConfirm()
+    {
+        showLogoutConfirm = false;
+    }
+
     private async Task HandleLogout()
     {
+        showLogoutConfirm = false;
         try
         {
             await AuthService.LogoutAsync();

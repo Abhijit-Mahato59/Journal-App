@@ -292,6 +292,81 @@ public class JournalService
         return tagFrequency.OrderByDescending(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
     }
 
+    public async Task<(List<JournalEntry> entries, int totalCount)> GetFilteredEntriesAsync(
+        string? searchTerm = null,
+        string? moodFilter = null,
+        string? moodCategory = null,
+        string? tagFilter = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int skip = 0,
+        int take = 10)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var query = context.JournalEntries.Where(e => !e.HasBeenDeleted);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(e => e.Title.Contains(searchTerm) || e.Content.Contains(searchTerm));
+        }
+
+        if (!string.IsNullOrWhiteSpace(moodFilter))
+        {
+            query = query.Where(e => e.PrimaryMood == moodFilter || e.SecondaryMood1 == moodFilter || e.SecondaryMood2 == moodFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(tagFilter))
+        {
+            query = query.Where(e => e.Tags != null && e.Tags.Contains(tagFilter));
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(e => e.Date.Date >= startDate.Value.Date);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(e => e.Date.Date <= endDate.Value.Date);
+        }
+
+        // Apply mood category filter in memory since it requires the MoodCategories helper
+        var filteredQuery = query.OrderByDescending(e => e.Date);
+
+        if (!string.IsNullOrWhiteSpace(moodCategory))
+        {
+            var allEntries = await filteredQuery.ToListAsync();
+            var categoryFiltered = allEntries
+                .Where(e => MoodCategories.GetMoodCategory(e.PrimaryMood) == moodCategory)
+                .ToList();
+            var totalCount = categoryFiltered.Count;
+            var pagedEntries = categoryFiltered.Skip(skip).Take(take).ToList();
+            return (pagedEntries, totalCount);
+        }
+
+        var total = await query.CountAsync();
+        var entries = await filteredQuery.Skip(skip).Take(take).ToListAsync();
+        return (entries, total);
+    }
+
+    public async Task<List<string>> GetAllUsedTagsAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var entries = await context.JournalEntries
+            .Where(e => !e.HasBeenDeleted && e.Tags != null && e.Tags != "")
+            .Select(e => e.Tags!)
+            .ToListAsync();
+
+        return entries
+            .SelectMany(t => t.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrEmpty(t))
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
+    }
+
     public async Task<double> GetAverageWordCountAsync(DateTime? startDate = null, DateTime? endDate = null)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
