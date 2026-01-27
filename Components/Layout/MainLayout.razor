@@ -1,16 +1,57 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Navigation
 
-<div class="page">
-    <div class="sidebar">
-        <div class="top-row">
-            <h3 style="color: white; margin: 0;">Journal App</h3>
-        </div>
-        <NavMenu />
-    </div>
+@if (currentPath == "login")
+{
+    @Body
+}
+else
+{
+    <AuthGuard>
+        <div class="page">
+            <div class="sidebar">
+                <div class="top-row">
+                    <h3 style="color: white; margin: 0;">Journal App</h3>
+                </div>
+                <NavMenu />
+            </div>
 
-    <main class="main">
-        <div class="main-content">
-            @Body
+            <main class="main">
+                <div class="main-content">
+                    @Body
+                </div>
+            </main>
         </div>
-    </main>
-</div>
+    </AuthGuard>
+}
+
+@code {
+    private string currentPath = string.Empty;
+    protected override void OnInitialized()
+    {
+        UpdateCurrentPath();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void UpdateCurrentPath()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        currentPath = uri.PathAndQuery.TrimStart('/');
+
+        // Extract just the path without query string
+        var pathOnly = currentPath.Split('?')[0];
+        currentPath = pathOnly;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateCurrentPath();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

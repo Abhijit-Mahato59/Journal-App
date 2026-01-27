@@ -1,5 +1,7 @@
 ﻿@page "/settings"
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
 <PageTitle>Settings - Journal App</PageTitle>
 
@@ -16,6 +18,43 @@
     {
         <div class="error-message">@errorMessage</div>
     }
+
+    <!-- Password Protection Section -->
+    <div class="settings-section">
+        <h2>Password Protection</h2>
+        <p class="section-description">Protect your journal with a password</p>
+
+        <div class="setting-card">
+            <div class="setting-info">
+                <h3>Password Protection</h3>
+                <p>@(isPasswordSet ? "Your journal is currently password protected" : "No password set")</p>
+            </div>
+            <div class="setting-action">
+                @if (isPasswordSet)
+                {
+                    <button class="btn btn-secondary" @onclick="ShowChangePasswordDialog">Change Password</button>
+                    <button class="btn btn-danger" @onclick="ShowRemovePasswordDialog">Remove Password</button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick="ShowSetPasswordDialog">Set Password</button>
+                }
+            </div>
+        </div>
+
+        @if (isPasswordSet)
+        {
+            <div class="setting-card">
+                <div class="setting-info">
+                    <h3>Logout</h3>
+                    <p>Log out of your journal to lock it</p>
+                </div>
+                <div class="setting-action">
+                    <button class="btn btn-secondary" @onclick="HandleLogout">Logout</button>
+                </div>
+            </div>
+        }
+    </div>
 
     <!-- Theme Settings Section -->
     <div class="settings-section">
@@ -50,6 +89,61 @@
             </div>
         </div>
     </div>
+
+    <!-- Password Modals -->
+    @if (showPasswordDialog)
+    {
+        <div class="modal-overlay" @onclick="ClosePasswordDialog">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <h2>@passwordDialogTitle</h2>
+
+                @if (passwordDialogMode == "change")
+                {
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" @bind="currentPassword" class="form-control" placeholder="Enter current password" />
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label>@(passwordDialogMode == "change" ? "New Password" : "Password")</label>
+                    <input type="password" @bind="newPassword" class="form-control" placeholder="Enter password" />
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" @bind="confirmPassword" class="form-control" placeholder="Confirm password" />
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-primary" @onclick="HandlePasswordAction">
+                        @(passwordDialogMode == "set" ? "Set Password" : "Change Password")
+                    </button>
+                    <button class="btn btn-secondary" @onclick="ClosePasswordDialog">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showRemovePasswordDialog)
+    {
+        <div class="modal-overlay" @onclick="CloseRemovePasswordDialog">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <h2>Remove Password Protection</h2>
+                <p>Are you sure you want to remove password protection from your journal?</p>
+
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" @bind="removePasswordInput" class="form-control" placeholder="Enter current password" />
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-danger" @onclick="HandleRemovePassword">Remove Password</button>
+                    <button class="btn btn-secondary" @onclick="CloseRemovePasswordDialog">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -57,9 +151,183 @@
     private string? successMessage;
     private string? errorMessage;
 
+    // Password protection
+    private bool isPasswordSet = false;
+    private bool showPasswordDialog = false;
+    private bool showRemovePasswordDialog = false;
+    private string passwordDialogMode = "set"; // "set" or "change"
+    private string passwordDialogTitle = "";
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string removePasswordInput = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadSettings();
+        await CheckPasswordStatus();
+    }
+
+    private async Task CheckPasswordStatus()
+    {
+        try
+        {
+            isPasswordSet = await AuthService.IsPasswordSetAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking password status: {ex.Message}");
+        }
+    }
+
+    // Password dialog methods
+    private void ShowSetPasswordDialog()
+    {
+        passwordDialogMode = "set";
+        passwordDialogTitle = "Set Password";
+        showPasswordDialog = true;
+        ClearPasswordFields();
+    }
+
+    private void ShowChangePasswordDialog()
+    {
+        passwordDialogMode = "change";
+        passwordDialogTitle = "Change Password";
+        showPasswordDialog = true;
+        ClearPasswordFields();
+    }
+
+    private void ShowRemovePasswordDialog()
+    {
+        showRemovePasswordDialog = true;
+        removePasswordInput = string.Empty;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void ClosePasswordDialog()
+    {
+        showPasswordDialog = false;
+        ClearPasswordFields();
+    }
+
+    private void CloseRemovePasswordDialog()
+    {
+        showRemovePasswordDialog = false;
+        removePasswordInput = string.Empty;
+    }
+
+    private void ClearPasswordFields()
+    {
+        currentPassword = string.Empty;
+        newPassword = string.Empty;
+        confirmPassword = string.Empty;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private async Task HandlePasswordAction()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        // Validate passwords
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            errorMessage = "Password cannot be empty";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            errorMessage = "Passwords do not match";
+            return;
+        }
+
+        if (newPassword.Length < 4)
+        {
+            errorMessage = "Password must be at least 4 characters";
+            return;
+        }
+
+        try
+        {
+            if (passwordDialogMode == "set")
+            {
+                await AuthService.SetPasswordAsync(newPassword);
+                successMessage = "Password set successfully";
+                isPasswordSet = true;
+                ClosePasswordDialog();
+            }
+            else if (passwordDialogMode == "change")
+            {
+                if (string.IsNullOrWhiteSpace(currentPassword))
+                {
+                    errorMessage = "Please enter your current password";
+                    return;
+                }
+
+                var success = await AuthService.ChangePasswordAsync(currentPassword, newPassword);
+                if (success)
+                {
+                    successMessage = "Password changed successfully";
+                    ClosePasswordDialog();
+                }
+                else
+                {
+                    errorMessage = "Current password is incorrect";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task HandleRemovePassword()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(removePasswordInput))
+        {
+            errorMessage = "Please enter your current password";
+            return;
+        }
+
+        try
+        {
+            var isValid = await AuthService.VerifyPasswordAsync(removePasswordInput);
+            if (isValid)
+            {
+                await AuthService.RemovePasswordAsync();
+                successMessage = "Password protection removed";
+                isPasswordSet = false;
+                CloseRemovePasswordDialog();
+            }
+            else
+            {
+                errorMessage = "Incorrect password";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error logging out: {ex.Message}";
+        }
     }
 
     private async Task LoadSettings()
@@ -205,6 +473,11 @@
         cursor: pointer;
         min-width: 150px;
     }
+
+        .theme-select option {
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
 
     .color-options {
         display: flex;
