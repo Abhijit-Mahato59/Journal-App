@@ -1,12 +1,27 @@
 ﻿@page "/entries"
 @inject JournalService JournalService
+@inject ExportService ExportService
+@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @using Markdig
 
 <PageTitle>View Entries - Journal App</PageTitle>
 
 <div class="entries-page">
-    <h1>Your Journal Entries</h1>
+    <div class="page-header">
+        <h1>Your Journal Entries</h1>
+        @if (entries != null && entries.Any())
+        {
+            <button class="btn btn-secondary btn-export" @onclick="ExportToPdf" disabled="@isExporting">
+                @(isExporting ? "Exporting..." : "Export PDF")
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(exportMessage))
+    {
+        <div class="@(exportSuccess ? "success-message" : "error-message")">@exportMessage</div>
+    }
 
     <div class="search-filter-section">
         <div class="search-bar">
@@ -119,6 +134,13 @@
                         <div>
                             <h3>@entry.Title</h3>
                             <p class="entry-date">@entry.Date.ToString("MMMM dd, yyyy")</p>
+                            <div class="entry-timestamps">
+                                <span>Created At: @entry.CreatedAt.ToString("hh:mm tt")</span>
+                                @if (entry.HasBeenEdited)
+                                {
+                                    <span>Updated At: @entry.UpdatedAt.ToString("hh:mm tt")</span>
+                                }
+                            </div>
                         </div>
                         <div class="entry-moods">
                             <span class="mood-badge mood-@(MoodCategories.GetMoodCategory(entry.PrimaryMood).ToLower())">
@@ -151,10 +173,15 @@
                                 <span>@entry.Tags</span>
                             }
                         </div>
-                        @if (entry.Date.Date == DateTime.Today)
-                        {
-                            <button class="btn-edit" @onclick="() => EditEntry()">Edit</button>
-                        }
+                        <div class="entry-actions">
+                            @if (entry.Date.Date == DateTime.Today)
+                            {
+                                <button class="btn-edit" @onclick="() => EditEntry()">Edit</button>
+                            }
+                            <button class="btn-export-entry" @onclick="() => ExportSingleEntry(entry)" disabled="@(exportingEntryId == entry.Id)">
+                                @(exportingEntryId == entry.Id ? "Exporting..." : "Export PDF")
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
@@ -189,6 +216,10 @@
     private DateTime? endDate;
     private bool showFilters = false;
     private List<string> availableTags = new();
+    private bool isExporting = false;
+    private int? exportingEntryId = null;
+    private string? exportMessage;
+    private bool exportSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -275,6 +306,107 @@
         }
     }
 
+    private async Task ExportToPdf()
+    {
+        isExporting = true;
+        exportMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await JournalService.GetFilteredEntriesAsync(
+                searchTerm: string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                moodFilter: string.IsNullOrWhiteSpace(selectedMood) ? null : selectedMood,
+                moodCategory: string.IsNullOrWhiteSpace(selectedMoodCategory) ? null : selectedMoodCategory,
+                tagFilter: string.IsNullOrWhiteSpace(selectedTag) ? null : selectedTag,
+                startDate: startDate,
+                endDate: endDate,
+                skip: 0,
+                take: 10000);
+
+            if (!result.entries.Any())
+            {
+                exportMessage = "No entries to export.";
+                exportSuccess = false;
+                return;
+            }
+
+            var pdfBytes = await ExportService.ExportToPdfAsync(result.entries);
+            var fileName = $"Journal_Export_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            var savedPath = await SavePdfToDownloads(pdfBytes, fileName);
+
+            exportMessage = $"PDF saved to: {savedPath}";
+            exportSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            exportMessage = $"Error exporting PDF: {ex.Message}";
+            exportSuccess = false;
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private async Task ExportSingleEntry(JournalEntry entry)
+    {
+        exportingEntryId = entry.Id;
+        exportMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var pdfBytes = await ExportService.ExportSingleEntryToPdfAsync(entry);
+            var safeTitle = string.Join("_", entry.Title.Split(Path.GetInvalidFileNameChars()));
+            var fileName = $"Journal_{safeTitle}_{entry.Date:yyyyMMdd}.pdf";
+            var savedPath = await SavePdfToDownloads(pdfBytes, fileName);
+
+            exportMessage = $"PDF saved to: {savedPath}";
+            exportSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            exportMessage = $"Error exporting PDF: {ex.Message}";
+            exportSuccess = false;
+        }
+        finally
+        {
+            exportingEntryId = null;
+        }
+    }
+
+    private async Task<string> SavePdfToDownloads(byte[] pdfBytes, string fileName)
+    {
+        string downloadsPath;
+
+#if WINDOWS
+        try
+        {
+            downloadsPath = Windows.Storage.UserDataPaths.GetDefault().Downloads;
+        }
+        catch
+        {
+            // Fallback approaches
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrEmpty(userProfile))
+            {
+                userProfile = Environment.GetEnvironmentVariable("USERPROFILE") ?? "";
+            }
+            downloadsPath = Path.Combine(userProfile, "Downloads");
+        }
+#elif ANDROID
+        downloadsPath = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads)!.AbsolutePath;
+#else
+        downloadsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+#endif
+
+        Directory.CreateDirectory(downloadsPath);
+        var filePath = Path.Combine(downloadsPath, fileName);
+        await File.WriteAllBytesAsync(filePath, pdfBytes);
+        return filePath;
+    }
+
     private string GetHtmlPreview(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -297,12 +429,43 @@
 
 <style>
     .entries-page {
-        max-width: 900px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
     }
 
     h1 {
         font-size: 28px;
-        margin-bottom: 30px;
+        margin: 0;
+    }
+
+    .btn-export {
+        font-family: inherit;
+        white-space: nowrap;
+    }
+
+    .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        color: #155724;
+        font-size: 14px;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        color: #721c24;
+        font-size: 14px;
     }
 
     /* Search & Filter Section */
@@ -507,6 +670,14 @@
         margin: 0;
     }
 
+    .entry-timestamps {
+        display: flex;
+        gap: 15px;
+        font-size: 12px;
+        color: var(--text-tertiary);
+        margin-top: 4px;
+    }
+
     .entry-moods {
         display: flex;
         gap: 5px;
@@ -571,6 +742,35 @@
 
         .btn-edit:hover {
             opacity: 0.8;
+        }
+
+    .entry-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .btn-export-entry {
+        padding: 6px 12px;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+
+        .btn-export-entry:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+
+        .btn-export-entry:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
     /* Responsive */
